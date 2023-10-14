@@ -1,0 +1,30 @@
+- name: update package cache
+  apt:
+    update_cache: yes 
+
+- name: add NodeSource Node.js repository GPG key
+  apt_key:
+    url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+    state: present
+
+- name: add NodeSource Node.js repository
+  apt_repository:
+    repo: "deb https://deb.nodesource.com/node_14.x focal main"
+    state: present
+
+- name: update package cache
+  apt:
+    update_cache: yes
+    
+- name: install Node.js and npm
+  apt:
+    name: nodejs
+    state: present
+
+- name: verify Node.js installation
+  command: node -v
+  register: node_version
+  ignore_errors: yes
+
+- debug:
+    msg: "Node.js {{ node_version.stdout }} installed successfully."

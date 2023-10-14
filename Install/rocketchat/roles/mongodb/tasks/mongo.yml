@@ -1,0 +1,41 @@
+- name: install dependencies for MogoDB
+  apt:
+     pkg:
+        - libcurl4
+        - openssl
+        - liblzma5
+     state: present
+     update_cache: true
+     
+- name: Add MongoDB GPG key
+  apt_key:
+    url: https://www.mongodb.org/static/pgp/server-6.0.asc
+    state: present
+
+- name: Add MongoDB repository
+  apt_repository:
+    repo: "deb https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse"
+    state: present
+
+- name: Update package cache
+  apt:
+    update_cache: yes
+
+- name: Install MongoDB
+  apt:
+    name: mongodb-org
+    state: present
+
+- name: Start MongoDB service
+  systemd:
+    name: mongod
+    enabled: yes
+    state: started
+
+- name: verify MongoDB installation
+  command: mongod --version
+  register: mongo_version
+  ignore_errors: yes
+
+- debug:
+    msg: "MongoDB.js {{ mongo_version.stdout }} installed successfully."

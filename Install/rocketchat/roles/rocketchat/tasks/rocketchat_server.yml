@@ -1,0 +1,100 @@
+- name: install depencencies.
+  apt:
+    pkg:
+      - nginx
+      - curl
+      - build-essential
+      - graphicsmagick
+    state: latest
+    update_cache: true
+
+- name: get the rocketchat package.
+  unarchive:
+    src: https://releases.rocket.chat/latest/download
+    dest: /opt
+    remote_src: true
+    validate_certs: yes
+
+- name: change to the directory and run npm install
+  shell: npm install --production
+  args:
+    chdir: /opt/bundle/programs/server
+
+- name: move files to /opt/Rocket.Chat
+  command: mv /opt/bundle /opt/Rocket.Chat
+
+- name: add the rocketchat user
+  user:
+    name: rocketchat
+    createhome: no
+    shell: /usr/sbin/nologin
+
+- name: set permissions on the Rocket.Chat folder
+  file:
+    path: /opt/Rocket.Chat
+    owner: rocketchat
+    group: rocketchat
+    recurse: yes
+
+- name: delete mongod.conf
+  file:
+    path: /etc/mongod.conf
+    state: absent
+
+- name: replace with the new mongod.conf 
+  template:
+    src: roles/rocketchat/files/mongod.conf
+    dest: /etc/mongod.conf
+
+- name: set permissions on mongod.conf
+  file:
+    path: /etc/mongod.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: restart the mongod service
+  service:
+    name: mongod
+    state: restarted
+
+- name: enable and start the mongod service
+  service:
+    name: mongod
+    enabled: yes
+    state: started
+
+- name: initiate MongoDB Replica Set
+  shell: mongosh --eval "printjson(rs.initiate())"
+
+- name: set up rocketchat service.
+  template:
+    src: roles/rocketchat/files/rocketchat.service
+    dest: /lib/systemd/system/
+
+- name: create rocketchat.service.d directory
+  file:
+    path: /etc/systemd/system/rocketchat.service.d/
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: copy rocketchat.service drop-in
+  template:
+    src: roles/rocketchat/files/override.conf
+    dest: /etc/systemd/system/rocketchat.service.d/
+    owner: root
+    group: root
+    mode: 0644
+
+- name: enable rocketchat.service.
+  ansible.builtin.systemd:
+    name: rocketchat.service
+    enabled: yes
+    masked: no
+
+- name: start the rocketchat service.
+  ansible.builtin.systemd:
+    state: started
+    name: rocketchat.service

@@ -1,0 +1,48 @@
+---
+- name: Install Jenkins
+  become: yes
+  hosts: tag_Jenkins_Server
+  remote_user: ubuntu
+  become_method: sudo
+  tasks:
+    - include_vars: var.yml
+
+    - name: update apt package cache
+      apt:
+        update_cache: yes
+        state: latest
+    
+    - name: install Java (OpenJDK)
+      apt:
+        name: "{{java}}" 
+        state: present
+
+    - name: add Jenkins APT repository key
+      apt_key:
+        url: "{{jenkins.repo}}"
+        state: present
+
+    - name: add Jenkins APT repository
+      apt_repository:
+        repo: deb {{jenkins.apt_repo}} 
+        state: present
+
+    - name: update apt package
+      apt:
+        update_cache: yes
+        state: latest
+
+    - name: install Jenkins
+      apt:
+        name: jenkins
+        state: present
+
+    - name: start Jenkins service
+      service:
+        name: jenkins
+        state: started
+        enabled: true
+
+    
+
+    

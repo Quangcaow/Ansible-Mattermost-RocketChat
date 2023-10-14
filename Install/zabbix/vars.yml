@@ -1,0 +1,4 @@
+---
+db_username: {{username}}
+db_password: {{pw}}
+db_name: {{db}}

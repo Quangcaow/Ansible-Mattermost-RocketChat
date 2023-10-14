@@ -1,0 +1,52 @@
+---
+- name: Install Rocketchat Server
+  become: yes
+  hosts: tag_Rocketchat_Server
+  remote_user: ubuntu
+  become_method: sudo
+
+  pre_tasks:
+
+    - name: obtain the public ip address of the server
+      set_fact: public_ip="{{ hostvars[item].public_ip_address }}"
+      with_items: "{{ groups['tag_Rocketchat_Server'] }}"
+      register: sv_ips
+
+    - name: set public ip fact
+      set_fact: server_public_ip="{{ sv_ips.results | map(attribute='ansible_facts.public_ip') | first }}"
+    
+    - name: Obtain the public ip address of the Zabbix server
+      set_fact: public_ip="{{ hostvars[item].public_ip_address }}"
+      with_items: "{{ groups['tag_Zabbix_Server'] }}"
+      register: zabbixsv_ips
+
+    - name: Set public ip fact
+      set_fact: zabbix_public_ip="{{ zabbixsv_ips.results | map(attribute='ansible_facts.public_ip') | first }}"
+    
+
+  tasks:
+
+  - include_vars: vars.yml
+
+  - include_role:
+      name: npm
+      tasks_from: npm
+
+  - include_role:
+      name: mongodb
+      tasks_from: mongo
+
+  - include_role:
+      name: rocketchat
+      tasks_from: rocketchat_server
+
+  - include_role:
+      name: nginx
+      tasks_from: nginx
+
+  - include_role:
+      name: zabbix_agent
+      tasks_from: zabbix_agent
+
+  
+

@@ -1,0 +1,82 @@
+- name: upgrade all packages
+  ansible.builtin.yum:
+    name: '*'
+    state: latest
+
+- name: put SELinux in permissive mode.
+  ansible.posix.selinux:
+    policy: targeted
+    state: permissive
+
+- name: install postgresql
+  yum:
+    name:
+      - nano
+      - postgresql
+      - postgresql-server
+      - postgresql-contrib
+      - acl
+      - python3-psycopg2
+    state: present
+
+- name: initialize PostgreSQL database cluster
+  command: /usr/bin/postgresql-setup --initdb
+  become_user: postgres
+     
+- name: ensure postgres service is running
+  service: 
+    name: postgresql
+    state: started
+     
+- name: enable postgresql service
+  service:
+    name: postgresql
+    enabled: yes
+
+- name: create zabbix database
+  community.postgresql.postgresql_db:
+    name: "{{db_name}}"
+    state: present
+  become: yes
+  become_user: postgres 
+ 
+- name: create zabbix user
+  community.postgresql.postgresql_user:
+    name: "{{db_username}}"
+    password: "{{db_password}}"
+  become_user: postgres
+ 
+- name: grant the user access to the zabbix database
+  community.postgresql.postgresql_privs:
+    db: "{{db_name}}"
+    privs: ALL
+    roles: "{{db_username}}"
+    objs: ALL_IN_SCHEMA
+  become_user: postgres
+    
+- name: ensure postgres listenl on "*"
+  lineinfile: #to replace a line
+    dest: /var/lib/pgsql/data/postgresql.conf
+    regexp: "#listen_addresses ="
+    line: "listen_addresses = '*'"
+  become_user: postgres
+
+- name: restart postgresql service
+  service:
+    name: postgresql
+    state: restarted
+        
+- name: modify the file pg_hba.conf to allow the zabbix server to communicate with the database.
+  community.postgresql.postgresql_pg_hba:
+    dest: /var/lib/pgsql/data/pg_hba.conf
+    contype: host
+    users: "all"
+    source: "127.0.0.1/32"
+    databases: "all"
+    method: md5
+  become_user: postgres
+
+- name: reload postgresql service
+  ansible.builtin.systemd:
+    name: postgresql
+    state: reloaded

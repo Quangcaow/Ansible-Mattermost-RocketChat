@@ -1,0 +1,35 @@
+---
+- name: Install Jmeter
+  become: yes
+  hosts: tag_Jmeter_Server
+  remote_user: ubuntu
+  become_method: sudo
+  tasks:
+    - include_vars: var.yml
+
+    - name: update apt package cache
+      apt:
+        update_cache: yes
+        state: latest
+    
+    - name: install Java (OpenJDK)
+      apt:
+        name: "{{java}}" 
+        state: present
+
+    - name: download JMeter archive
+      get_url:
+        url: "{{jmeter.url}}"
+        dest: /tmp/apache-jmeter.tgz
+
+    - name: extract JMeter
+      ansible.builtin.unarchive:
+        src: /tmp/apache-jmeter.tgz
+        dest: /opt/
+        remote_src: yes
+      
+
+
+    
+
+    

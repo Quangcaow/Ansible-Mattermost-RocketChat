@@ -1,0 +1,44 @@
+---
+- name: Install Mattermost Server
+  become: yes
+  hosts: tag_Mattermost_Server
+  remote_user: ubuntu
+  become_method: sudo
+
+  pre_tasks:  
+    - name: Obtain the private ip address of the server
+      set_fact: private_ip="{{ hostvars[item].private_ip_address }}"
+      with_items: "{{ groups['tag_Mattermost_Server'] }}"
+      register: sv_ips
+
+    - name: Set private ip fact
+      set_fact: server_private_ip="{{ sv_ips.results | map(attribute='ansible_facts.private_ip') | first }}"
+
+    - name: Obtain the public ip address of the Zabbix server
+      set_fact: public_ip="{{ hostvars[item].public_ip_address }}"
+      with_items: "{{ groups['tag_Zabbix_Server'] }}"
+      register: zabbixsv_ips
+
+    - name: Set public ip fact
+      set_fact: zabbix_public_ip="{{ zabbixsv_ips.results | map(attribute='ansible_facts.public_ip') | first }}"
+
+  tasks:
+
+  - include_vars: vars.yml
+
+  - include_role:
+      name: postgres
+      tasks_from: psql
+
+  - include_role:
+      name: mattermost
+      tasks_from: mattermost_server
+
+  - include_role:
+      name: nginx
+      tasks_from: nginx
+
+  - include_role:
+      name: zabbix_agent
+      tasks_from: zabbix_agent
+  

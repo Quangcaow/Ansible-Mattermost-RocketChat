@@ -1,0 +1,5 @@
+---
+java: "openjdk-17-jdk"
+jenkins:
+  repo: "https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key"
+  apt_repo: "https://pkg.jenkins.io/debian-stable binary/"

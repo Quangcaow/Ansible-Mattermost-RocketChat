@@ -1,0 +1,33 @@
+---
+- name: Install Zabbix Server
+  become: yes
+  hosts: tag_Zabbix_Server
+  remote_user: ec2-user
+  become_method: sudo
+
+  pre_tasks:  
+    - name: Obtain the private ip address of the server
+      set_fact: private_ip="{{ hostvars[item].private_ip_address }}"
+      with_items: "{{ groups['tag_Zabbix_Server'] }}"
+      register: sv_ips
+
+    - name: Set private ip fact
+      set_fact: server_private_ip="{{ sv_ips.results | map(attribute='ansible_facts.private_ip') | first }}"
+
+  tasks:
+
+  - include_vars: vars.yml
+
+  - include_role:
+      name: postgres
+      tasks_from: psql
+
+  - include_role:
+      name: zabbix
+      tasks_from: zabbix_server
+
+  - include_role:
+      name: nginx
+      tasks_from: nginx
+
+  
